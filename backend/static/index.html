@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RECON — Reconciliación Contable</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Playfair Display', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['DM Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0a0a0f; color: #f8fafc; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #12121a; }
+    ::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.4); border-radius: 3px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulseGold {
+      0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+      50%      { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
+    }
+    @keyframes progressBar {
+      0%   { width: 5%; }
+      100% { width: 90%; }
+    }
+
+    .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+    .fade-up-1 { animation: fadeUp 0.5s 0.1s ease-out both; }
+    .fade-up-2 { animation: fadeUp 0.5s 0.2s ease-out both; }
+    .fade-up-3 { animation: fadeUp 0.5s 0.3s ease-out both; }
+    .spinner { animation: spin 1.2s linear infinite; }
+    .pulse-gold { animation: pulseGold 2s ease-in-out infinite; }
+    .progress-animate { animation: progressBar 8s ease-out forwards; }
+
+    .drop-zone { transition: all 0.25s; }
+    .drop-zone.dragover { border-style: solid !important; background: rgba(245,158,11,0.08) !important; box-shadow: 0 0 24px rgba(245,158,11,0.25); }
+    .drop-zone-exact.dragover { background: rgba(59,130,246,0.08) !important; box-shadow: 0 0 24px rgba(59,130,246,0.25); }
+
+    .metric-card { animation: fadeUp 0.4s ease-out both; }
+    .metric-card:nth-child(1) { animation-delay: 0ms; }
+    .metric-card:nth-child(2) { animation-delay: 80ms; }
+    .metric-card:nth-child(3) { animation-delay: 160ms; }
+    .metric-card:nth-child(4) { animation-delay: 240ms; }
+
+    input[type=file] { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header style="background:rgba(18,18,26,0.95);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)">
+  <div style="max-width:900px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#0a0a0f;">R</div>
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#f8fafc;line-height:1;">RECON</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:0.05em;margin-top:2px;">Reconciliación Contable Inteligente</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:6px 14px;border-radius:20px;">NAOS ↔ EXACT · Motor de cruce automatizado</div>
+  </div>
+</header>
+
+<main style="max-width:900px;margin:0 auto;padding:40px 24px 80px;">
+
+  <!-- TITLE -->
+  <div class="fade-up" style="text-align:center;margin-bottom:40px;">
+    <h2 style="font-family:'Playfair Display',serif;font-size:clamp(28px,5vw,46px);font-weight:700;color:#f8fafc;margin:0 0 10px;">
+      Reconciliación <span style="color:#f59e0b;">Automatizada</span>
+    </h2>
+    <p style="color:rgba(255,255,255,0.4);font-size:15px;margin:0;">Carga los ficheros de NAOS y EXACT para detectar diferencias y generar el informe ejecutivo.</p>
+  </div>
+
+  <!-- UPLOAD GRID -->
+  <div class="fade-up-1" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+    <!-- NAOS -->
+    <div id="zone-naos" class="drop-zone" onclick="document.getElementById('input-naos').click()"
+         style="border-radius:16px;border:1.5px dashed rgba(255,255,255,0.12);background:#12121a;padding:28px;cursor:pointer;position:relative;">
+      <input type="file" id="input-naos" accept=".xlsx,.xls" onchange="handleFile('naos', this.files[0])">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(245,158,11,0.12);border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#f59e0b;">N</div>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;color:#f59e0b;text-transform:uppercase;">NAOS</div>
+          <div style="font-size:13px;color:#f8fafc;font-weight:500;">Archivo exportación NAOS</div>
+        </div>
+      </div>
+      <div id="naos-empty" style="text-align:center;padding:20px 0;">
+        <div style="width:52px;height:52px;border-radius:14px;background:rgba(245,158,11,0.1);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+          <svg width="26" height="26" fill="none" stroke="#f59e0b" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:0 0 6px;">Arrastra aquí o haz clic</p>
+        <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.05);padding:3px 10px;border-radius:20px;">.xlsx · .xls</span>
+      </div>
+      <div id="naos-selected" style="display:none;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:14px;display:none;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div style="min-width:0;">
+          <div id="naos-name" style="color:#6ee7b7;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+          <div id="naos-size" style="color:#34d399;font-size:11px;margin-top:2px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXACT -->
+    <div id="zone-exact" class="drop-zone drop-zone-exact" onclick="document.getElementById('input-exact').click()"
+         style="border-radius:16px;border:1.5px dashed rgba(255,255,255,0.12);background:#12121a;padding:28px;cursor:pointer;position:relative;">
+      <input type="file" id="input-exact" accept=".xlsx,.xls" onchange="handleFile('exact', this.files[0])">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.12);border:1px solid #3b82f6;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#3b82f6;">E</div>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;color:#3b82f6;text-transform:uppercase;">EXACT</div>
+          <div style="font-size:13px;color:#f8fafc;font-weight:500;">Archivo exportación EXACT</div>
+        </div>
+      </div>
+      <div id="exact-empty" style="text-align:center;padding:20px 0;">
+        <div style="width:52px;height:52px;border-radius:14px;background:rgba(59,130,246,0.1);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+          <svg width="26" height="26" fill="none" stroke="#3b82f6" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:0 0 6px;">Arrastra aquí o haz clic</p>
+        <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.05);padding:3px 10px;border-radius:20px;">.xlsx · .xls</span>
+      </div>
+      <div id="exact-selected" style="display:none;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:14px;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div style="min-width:0;">
+          <div id="exact-name" style="color:#6ee7b7;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+          <div id="exact-size" style="color:#34d399;font-size:11px;margin-top:2px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="fade-up-2" style="display:flex;gap:10px;margin-bottom:28px;">
+    <button id="btn-reconcile" onclick="startReconcile()" disabled
+      style="flex:1;padding:16px;border-radius:14px;border:none;font-size:15px;font-weight:600;cursor:not-allowed;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3);transition:all 0.3s;font-family:'DM Sans',sans-serif;">
+      ⚡ Reconciliar
+    </button>
+    <button id="btn-reset" onclick="resetAll()" style="display:none;padding:16px 22px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
+      Limpiar
+    </button>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div id="panel" class="fade-up-3">
+
+    <!-- IDLE -->
+    <div id="state-idle" style="border-radius:16px;background:#12121a;border:1px solid rgba(255,255,255,0.06);padding:52px 32px;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;">
+        <svg width="32" height="32" fill="none" stroke="#f59e0b" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <h3 style="font-family:'Playfair Display',serif;font-size:20px;color:#f8fafc;margin:0 0 8px;">Listo para reconciliar</h3>
+      <p style="color:rgba(255,255,255,0.4);font-size:14px;max-width:360px;margin:0 auto 24px;line-height:1.6;">Carga los archivos NAOS y EXACT, luego pulsa <strong style="color:rgba(255,255,255,0.6);">Reconciliar</strong>.</p>
+      <div style="display:flex;justify-content:center;gap:24px;font-size:12px;color:rgba(255,255,255,0.25);">
+        <span>✦ Cruce por referencia</span><span>✦ Cruce por descripción</span><span>✦ Cruce one-to-one</span>
+      </div>
+    </div>
+
+    <!-- PROCESSING -->
+    <div id="state-processing" style="display:none;border-radius:16px;background:#12121a;border:1px solid rgba(255,255,255,0.06);padding:52px 32px;text-align:center;">
+      <div style="position:relative;width:64px;height:64px;margin:0 auto 20px;">
+        <svg class="spinner" width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="rgba(245,158,11,0.15)" stroke-width="4"/>
+          <path d="M32 4 A28 28 0 0 1 60 32" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;">⚡</div>
+      </div>
+      <h3 style="font-family:'Playfair Display',serif;font-size:20px;color:#f8fafc;margin:0 0 14px;">Procesando reconciliación</h3>
+      <div id="processing-msg" style="display:inline-block;padding:8px 20px;border-radius:20px;font-size:13px;font-family:'JetBrains Mono',monospace;background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);margin-bottom:20px;">Cargando apuntes NAOS…</div>
+      <div style="width:100%;max-width:280px;margin:0 auto;height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;">
+        <div id="progress-bar" class="progress-animate" style="height:100%;border-radius:2px;background:linear-gradient(90deg,#f59e0b,#fbbf24);width:5%;"></div>
+      </div>
+    </div>
+
+    <!-- DONE -->
+    <div id="state-done" style="display:none;">
+      <!-- Metrics -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+        <div class="metric-card" style="border-radius:14px;background:#1a1a26;border:1px solid rgba(255,255,255,0.06);padding:18px;">
+          <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 8px;">Total fechas</p>
+          <p id="m-total" style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#f8fafc;margin:0;">0</p>
+        </div>
+        <div class="metric-card" style="border-radius:14px;background:#1a1a26;border:1px solid rgba(255,255,255,0.06);padding:18px;">
+          <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 8px;">Fechas OK</p>
+          <p id="m-ok" style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#10b981;margin:0;">0</p>
+        </div>
+        <div class="metric-card" style="border-radius:14px;background:#1a1a26;border:1px solid rgba(255,255,255,0.06);padding:18px;">
+          <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 8px;">Con diferencia</p>
+          <p id="m-diff" style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#f59e0b;margin:0;">0</p>
+        </div>
+        <div class="metric-card" style="border-radius:14px;background:#1a1a26;border:1px solid rgba(255,255,255,0.06);padding:18px;">
+          <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 8px;">Diferencia total</p>
+          <p id="m-amount" style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin:0;">0,00 €</p>
+        </div>
+      </div>
+
+      <!-- Download -->
+      <a id="btn-download" href="#" download="reconciliacion_resultado.xlsx"
+        class="pulse-gold"
+        style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:18px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#0a0a0f;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:20px;font-family:'DM Sans',sans-serif;">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Descargar Informe Excel
+      </a>
+
+      <!-- Summary table -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);font-weight:600;margin:0;">Resumen por fecha</h3>
+          <span id="badge-diff" style="display:none;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(245,158,11,0.2);color:#f59e0b;border:1px solid rgba(245,158,11,0.4);"></span>
+        </div>
+        <div style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 60px;background:rgba(68,114,196,0.25);padding:10px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.5);">
+            <div>Fecha</div><div style="text-align:right;">SALDO NAOS</div><div style="text-align:right;">SALDO EXACT</div><div style="text-align:right;">DIFERENCIA</div><div style="text-align:center;">Estado</div>
+          </div>
+          <div id="summary-rows" style="max-height:280px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="state-error" style="display:none;border-radius:16px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.3);padding:28px;">
+      <div style="display:flex;align-items:flex-start;gap:14px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <h3 style="color:#f87171;font-weight:600;margin:0 0 6px;">Error en el procesamiento</h3>
+          <p id="error-msg" style="color:rgba(248,113,113,0.7);font-size:13px;font-family:'JetBrains Mono',monospace;margin:0;"></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer style="border-top:1px solid rgba(255,255,255,0.04);padding:20px;text-align:center;">
+  <p style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.18);margin:0;">RECON · Motor de reconciliación NAOS ↔ EXACT · v1.0.0</p>
+</footer>
+
+<script>
+  // State
+  let naosFile = null;
+  let exactFile = null;
+  let downloadToken = null;
+
+  const MSGS = [
+    'Cargando apuntes NAOS…',
+    'Leyendo fichero EXACT…',
+    'Normalizando referencias…',
+    'Cruzando ref + importe + fecha…',
+    'Pasada B: matching one-to-one…',
+    'Calculando diferencias de saldo…',
+    'Generando informe Excel…',
+  ];
+  let msgInterval = null;
+
+  // Drag & drop
+  ['naos','exact'].forEach(sys => {
+    const zone = document.getElementById('zone-' + sys);
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f) handleFile(sys, f);
+    });
+  });
+
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  function handleFile(sys, file) {
+    if (sys === 'naos') naosFile = file;
+    else exactFile = file;
+
+    const empty = document.getElementById(sys + '-empty');
+    const selected = document.getElementById(sys + '-selected');
+    document.getElementById(sys + '-name').textContent = file.name;
+    document.getElementById(sys + '-size').textContent = fmtSize(file.size);
+    empty.style.display = 'none';
+    selected.style.display = 'flex';
+
+    updateReconcileBtn();
+    document.getElementById('btn-reset').style.display = 'block';
+  }
+
+  function updateReconcileBtn() {
+    const btn = document.getElementById('btn-reconcile');
+    if (naosFile && exactFile) {
+      btn.disabled = false;
+      btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+      btn.style.color = '#0a0a0f';
+      btn.style.cursor = 'pointer';
+      btn.style.boxShadow = '0 0 20px rgba(245,158,11,0.3)';
+    }
+  }
+
+  function setState(s) {
+    ['idle','processing','done','error'].forEach(st => {
+      document.getElementById('state-' + st).style.display = st === s ? '' : 'none';
+    });
+  }
+
+  function fmt(n) {
+    return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+  }
+  function fmtDate(s) {
+    try { const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; } catch { return s; }
+  }
+
+  function animateCount(elId, target, isAmount=false, suffix='') {
+    const el = document.getElementById(elId);
+    const start = performance.now();
+    const dur = 900;
+    function tick(now) {
+      const t = Math.min((now - start) / dur, 1);
+      const v = t * target;
+      el.textContent = isAmount ? fmt(v) + suffix : Math.round(v).toLocaleString('es-ES') + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  async function startReconcile() {
+    if (!naosFile || !exactFile) return;
+    setState('processing');
+    document.getElementById('btn-reconcile').disabled = true;
+
+    // Rotate messages
+    let i = 0;
+    msgInterval = setInterval(() => {
+      i = (i + 1) % MSGS.length;
+      document.getElementById('processing-msg').textContent = MSGS[i];
+    }, 800);
+
+    // Reset progress bar
+    const pb = document.getElementById('progress-bar');
+    pb.style.animation = 'none';
+    pb.offsetHeight; // reflow
+    pb.style.animation = 'progressBar 8s ease-out forwards';
+
+    try {
+      const form = new FormData();
+      form.append('naos_file', naosFile);
+      form.append('exact_file', exactFile);
+
+      const res = await fetch('/api/reconcile', { method: 'POST', body: form });
+      clearInterval(msgInterval);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+        throw new Error(err.detail || 'HTTP ' + res.status);
+      }
+
+      const data = await res.json();
+      downloadToken = data.download_token;
+
+      // Populate done state
+      setState('done');
+
+      animateCount('m-total', data.totalDates, false);
+      animateCount('m-ok', data.matchedDates, false);
+      animateCount('m-diff', data.diffDates, false);
+      const totalDiff = data.totalDiff;
+      const amountEl = document.getElementById('m-amount');
+      amountEl.style.color = Math.abs(totalDiff) < 0.02 ? '#10b981' : '#ef4444';
+      animateCount('m-amount', totalDiff, true, ' €');
+
+      document.getElementById('btn-download').href = '/api/download/' + downloadToken;
+
+      if (data.diffDates > 0) {
+        const badge = document.getElementById('badge-diff');
+        badge.textContent = data.diffDates + ' con diferencia';
+        badge.style.display = 'inline-block';
+      }
+
+      // Build table
+      const tbody = document.getElementById('summary-rows');
+      tbody.innerHTML = '';
+      data.summary.forEach((row, i) => {
+        const d = document.createElement('div');
+        d.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr 60px;padding:9px 16px;font-size:12px;font-family:JetBrains Mono,monospace;border-top:1px solid rgba(255,255,255,0.04);' + (i%2?'background:rgba(255,255,255,0.015)':'');
+        const diffColor = row.cuadra ? '#10b981' : '#ef4444';
+        d.innerHTML = `
+          <div style="color:rgba(255,255,255,0.6)">${fmtDate(row.fecha)}</div>
+          <div style="text-align:right;color:rgba(255,255,255,0.75)">${fmt(row.saldo_naos)}</div>
+          <div style="text-align:right;color:rgba(255,255,255,0.75)">${fmt(row.saldo_exact)}</div>
+          <div style="text-align:right;font-weight:600;color:${diffColor}">${fmt(row.diferencia)}</div>
+          <div style="text-align:center;color:${diffColor}">${row.cuadra ? '✓' : '✗'}</div>
+        `;
+        tbody.appendChild(d);
+      });
+
+    } catch (e) {
+      clearInterval(msgInterval);
+      setState('error');
+      document.getElementById('error-msg').textContent = e.message;
+    }
+  }
+
+  function resetAll() {
+    naosFile = null; exactFile = null; downloadToken = null;
+    clearInterval(msgInterval);
+
+    ['naos','exact'].forEach(sys => {
+      document.getElementById(sys + '-empty').style.display = '';
+      document.getElementById(sys + '-selected').style.display = 'none';
+      document.getElementById('input-' + sys).value = '';
+    });
+
+    const btn = document.getElementById('btn-reconcile');
+    btn.disabled = true;
+    btn.style.background = 'rgba(255,255,255,0.06)';
+    btn.style.color = 'rgba(255,255,255,0.3)';
+    btn.style.cursor = 'not-allowed';
+    btn.style.boxShadow = 'none';
+    document.getElementById('btn-reset').style.display = 'none';
+    setState('idle');
+  }
+</script>
+</body>
+</html>
