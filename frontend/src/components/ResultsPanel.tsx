@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppState, ReconciliationResult } from '../hooks/useReconciliation'
 import { SummaryTable } from './SummaryTable'
 
@@ -33,9 +33,6 @@ function useAnimatedCounter(target: number, duration = 1000) {
   return value
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 function MetricCard({
   label,

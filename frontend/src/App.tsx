@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { ResultsPanel } from './components/ResultsPanel'
 import { UploadZone } from './components/UploadZone'
 import { useReconciliation } from './hooks/useReconciliation'

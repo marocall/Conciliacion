@@ -1,4 +1,3 @@
-import React from 'react'
 import { DateSummary } from '../hooks/useReconciliation'
 
 interface Props {
